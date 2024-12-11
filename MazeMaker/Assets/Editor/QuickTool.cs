@@ -17,6 +17,7 @@ public class QuickTool : EditorWindow
         // Sets a minimum size to the window.
         window.minSize = new Vector2(280, 50);
     }
+
     private void CreateGUI()
     {
         // Reference to the root of the window.
@@ -35,6 +36,7 @@ public class QuickTool : EditorWindow
         var toolButtons = root.Query(className: "quicktool-button");
         toolButtons.ForEach(SetupButton);
     }
+
     private void SetupButton(VisualElement button)
     {
         // Reference to the VisualElement inside the button that serves
@@ -56,10 +58,10 @@ public class QuickTool : EditorWindow
         // Sets a basic tooltip to the button itself.
         button.tooltip = button.parent.name;
     }
+
     private void CreateObject(PointerUpEvent _, string primitiveTypeName)
     {
-        var pt = (PrimitiveType)Enum.Parse
-                     (typeof(PrimitiveType), primitiveTypeName, true);
+        var pt = (PrimitiveType)Enum.Parse(typeof(PrimitiveType), primitiveTypeName, true);
         var go = ObjectFactory.CreatePrimitive(pt);
         go.transform.position = Vector3.zero;
     }
