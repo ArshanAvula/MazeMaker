@@ -9,6 +9,6 @@
     <Instance template="button-template" name="Capsule"/>
     <Instance template="button-template" name="Cylinder"/>
     <Instance template="button-template" name="Plane"/>
-    <Instance template="button-template" name="GenerateMaze"/>
+    <Instance template="button-template" name="Maze"/>
   </VisualElement>
 </UXML>
