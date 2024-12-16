@@ -5,64 +5,139 @@ using System;
 
 public class QuickTool : EditorWindow
 {
+    private float lineHeight = 1.0f; // Default height
+
     [MenuItem("QuickTool/Open _%#T")]
     public static void ShowWindow()
     {
-        // Opens the window, otherwise focuses it if it's already open.
         var window = GetWindow<QuickTool>();
-
-        // Adds a title to the window.
         window.titleContent = new GUIContent("QuickTool");
-
-        // Sets a minimum size to the window.
         window.minSize = new Vector2(280, 50);
     }
 
     private void CreateGUI()
     {
-        // Reference to the root of the window.
         var root = rootVisualElement;
-
-        // Associates a stylesheet to our root. Thanks to inheritance, all root’s
-        // children will have access to it.
         root.styleSheets.Add(Resources.Load<StyleSheet>("QuickTool_Style"));
 
-        // Loads and clones our VisualTree (eg. our UXML structure) inside the root.
         var quickToolVisualTree = Resources.Load<VisualTreeAsset>("QuickTool_Main");
         quickToolVisualTree.CloneTree(root);
 
-        // Queries all the buttons (via type) in our root and passes them
-        // in the SetupButton method.
+        // Create a text field for line height input
+        TextField heightField = new TextField("Line Height");
+        heightField.value = lineHeight.ToString();
+        heightField.RegisterValueChangedCallback(evt =>
+        {
+            if (float.TryParse(evt.newValue, out float newHeight))
+            {
+                lineHeight = newHeight;
+            }
+            else
+            {
+                heightField.SetValueWithoutNotify(lineHeight.ToString());
+            }
+        });
+        root.Add(heightField);
+
         var toolButtons = root.Query(className: "quicktool-button");
         toolButtons.ForEach(SetupButton);
     }
 
     private void SetupButton(VisualElement button)
     {
-        // Reference to the VisualElement inside the button that serves
-        // as the button's icon.
         var buttonIcon = button.Q(className: "quicktool-button-icon");
-
-        // Icon's path in our project.
         var iconPath = "Icons/" + button.parent.name + "_icon";
-
-        // Loads the actual asset from the above path.
         var iconAsset = Resources.Load<Texture2D>(iconPath);
-
-        // Applies the above asset as a background image for the icon.
         buttonIcon.style.backgroundImage = iconAsset;
 
-        // Instantiates our primitive object on a left click.
-        button.RegisterCallback<PointerUpEvent, string>(CreateObject, button.parent.name);
-
-        // Sets a basic tooltip to the button itself.
+        button.RegisterCallback<PointerUpEvent, string>(HandleButtonClick, button.parent.name);
         button.tooltip = button.parent.name;
     }
 
-    private void CreateObject(PointerUpEvent _, string primitiveTypeName)
+    private void HandleButtonClick(PointerUpEvent _, string buttonName)
+    {
+        Debug.Log("Button clicked: " + buttonName);
+        if (buttonName == "Maze")
+        {
+            Debug.Log("Generating Maze...");
+            GenerateMaze();
+        }
+        else
+        {
+            CreateObject(buttonName);
+        }
+    }
+
+    private void CreateObject(string primitiveTypeName)
     {
         var pt = (PrimitiveType)Enum.Parse(typeof(PrimitiveType), primitiveTypeName, true);
         var go = ObjectFactory.CreatePrimitive(pt);
         go.transform.position = Vector3.zero;
+    }
+
+    private void GenerateMaze()
+    {
+        int layers = 5; // Number of squares
+        float size = 10f; // Initial size of the largest square
+        float decrement = 0.8f; // Size decrement factor
+
+        for (int i = 0; i < layers; i++)
+        {
+            bool isFlipped = i % 2 == 1;
+            Debug.Log("Creating square of size: " + size + (isFlipped ? " (flipped)" : ""));
+            CreateSquare(size, isFlipped);
+            size *= decrement;
+        }
+    }
+
+    private void CreateSquare(float size, bool isFlipped)
+    {
+        float lineWidth = 0.1f; // Width of the line segments
+
+        Vector3[] corners;
+        if (isFlipped)
+        {
+            corners = new Vector3[]
+            {
+                new Vector3(size / 2, 0, -size / 2),
+                new Vector3(-size / 2, 0, -size / 2),
+                new Vector3(-size / 2, 0, size / 2),
+                new Vector3(size / 2, 0, size / 2)
+            };
+        }
+        else
+        {
+            corners = new Vector3[]
+            {
+                new Vector3(-size / 2, 0, size / 2),
+                new Vector3(size / 2, 0, size / 2),
+                new Vector3(size / 2, 0, -size / 2),
+                new Vector3(-size / 2, 0, -size / 2)
+            };
+        }
+
+        for (int i = 0; i < corners.Length; i++)
+        {
+            Vector3 start = corners[i];
+            Vector3 end = corners[(i + 1) % corners.Length];
+            if (i == corners.Length - 1)
+            {
+                break; // Skip the last line to keep the bottom open
+            }
+            CreateLineSegment(start, end, lineWidth, lineHeight);
+        }
+    }
+
+    private void CreateLineSegment(Vector3 start, Vector3 end, float width, float height)
+    {
+        GameObject lineSegment = GameObject.CreatePrimitive(PrimitiveType.Cube);
+
+        // Calculate the position and scale
+        Vector3 position = (start + end) / 2;
+        Vector3 scale = new Vector3(width, height, Vector3.Distance(start, end));
+
+        lineSegment.transform.position = position;
+        lineSegment.transform.LookAt(end);
+        lineSegment.transform.localScale = scale;
     }
 }
